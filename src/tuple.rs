@@ -1,32 +1,53 @@
-use std::ops::{Add, Mul, Neg, Sub};
+use num::{one, zero, Num};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(PartialEq, Debug)]
-pub struct Tuple {
-    x: f64,
-    y: f64,
-    z: f64,
-    w: f64,
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub struct Tuple<T> {
+    x: T,
+    y: T,
+    z: T,
+    w: T,
 }
 
-impl Tuple {
-    pub fn new(x: f64, y: f64, z: f64, w: f64) -> Self {
+// impl From<Tuple<i64>> for Tuple<f64> {
+//     fn from(item: Tuple<i64>) -> Self {
+//         Self::new(item.x as f64, item.y as f64, item.z as f64, item.w as f64)
+//     }
+// }
+
+pub trait Magnitude {
+    fn magnitude(&self) -> f64;
+}
+
+impl Into<Tuple<f64>> for Tuple<i32> {
+    fn into(self) -> Tuple<f64> {
+        Tuple::new(self.x.into(), self.y.into(), self.z.into(), self.w.into())
+    }
+}
+
+impl<T: Num + Copy + Into<f64>> Tuple<T> {
+    pub fn new(x: T, y: T, z: T, w: T) -> Self {
         Self { x, y, z, w }
     }
 
     pub fn is_point(&self) -> bool {
-        self.w == 1.0
+        let fw: f64 = self.w.into();
+        fw == one()
     }
 
     pub fn is_vector(&self) -> bool {
-        self.w == 0.0
+        let fw: f64 = self.w.into();
+        fw == zero()
     }
 }
 
-impl Add<Tuple> for Tuple {
-    type Output = Tuple;
 
-    fn add(self, rhs: Tuple) -> Self::Output {
-        Tuple::new(
+
+impl<T: Num + Copy + Into<f64>> Add<Tuple<T>> for Tuple<T> {
+    type Output = Tuple<T>;
+
+    fn add(self, rhs: Tuple<T>) -> Self::Output {
+        Self::new(
             self.x + rhs.x,
             self.y + rhs.y,
             self.z + rhs.z,
@@ -35,11 +56,11 @@ impl Add<Tuple> for Tuple {
     }
 }
 
-impl Sub<Tuple> for Tuple {
+impl<T: Num + Copy + Into<f64>> Sub<Tuple<T>> for Tuple<T> {
     type Output = Self;
 
-    fn sub(self, rhs: Tuple) -> Self::Output {
-        Tuple::new(
+    fn sub(self, rhs: Tuple<T>) -> Self::Output {
+        Self::new(
             self.x - rhs.x,
             self.y - rhs.y,
             self.z - rhs.z,
@@ -48,39 +69,86 @@ impl Sub<Tuple> for Tuple {
     }
 }
 
-impl Neg for Tuple {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        Tuple::new(-self.x, -self.y, -self.z, -self.w)
+impl<T: Num + Copy + Into<f64>> Mul<T> for Tuple<T> {
+    type Output = Tuple<T>;
+    fn mul(self, rhs: T) -> Self::Output {
+        Tuple::new(self.x * rhs, self.y * rhs, self.z * rhs, self.w * rhs)
     }
 }
 
+impl Mul<f64> for Tuple<i32> {
+    type Output = Tuple<f64>;
+    fn mul(self, rhs: f64) -> Self::Output {
+        let tuple: Tuple<f64> = self.into();
+        tuple * rhs
+    }
+}
 
+impl Mul<i32> for Tuple<f64> {
+    type Output = Tuple<f64>;
 
-// TODO: doesnt work, need to understand how to do multiplication both for int and float together
-impl<T> Mul<T> for Tuple where T: Mul<Output=T> + Copy
+    fn mul(self, rhs: i32) -> Self::Output {
+        self * rhs as f64
+    }
+}
+
+impl<T> Div<T> for Tuple<f64>
+where
+    T: Into<f64>,
 {
-    type Output = Tuple;
-    fn mul(self, rhs: T) -> Self::Output {
+    type Output = Tuple<f64>;
+
+    fn div(self, rhs: T) -> Self::Output {
+        let right: f64 = rhs.into();
         Tuple::new(
-            self.x * rhs,
-            self.y * rhs,
-            self.z * rhs,
-            self.w * rhs
+            self.x / right,
+            self.y / right,
+            self.z / right,
+            self.w / right,
         )
     }
 }
 
-pub fn tuple<T: Into<f64>>(x: T, y: T, z: T, w: T) -> Tuple {
-    Tuple::new(x.into(), y.into(), z.into(), w.into())
+impl<T> Div<T> for Tuple<i32>
+where
+    T: Into<f64>,
+{
+    type Output = Tuple<f64>;
+    fn div(self, rhs: T) -> Self::Output {
+        let tuple: Tuple<f64> = self.into();
+        tuple / rhs
+    }
 }
 
-pub fn point<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
-    Tuple::new(x.into(), y.into(), z.into(), 1.0)
+impl<T> Neg for Tuple<T>
+where
+    T: Num + Copy + Into<f64> + Neg<Output = T>,
+{
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.x, -self.y, -self.z, -self.w)
+    }
 }
 
-pub fn vector<T: Into<f64>>(x: T, y: T, z: T) -> Tuple {
-    Tuple::new(x.into(), y.into(), z.into(), 0.0)
+impl<T: Num + Copy + Into<f64>> Magnitude for Tuple<T> {
+    fn magnitude(&self) -> f64 {
+        let square_sum = (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).into();
+        square_sum.sqrt()
+    }
+
+}
+
+pub fn tuple<T: Num + Copy + Into<f64>>(x: T, y: T, z: T, w: T) -> Tuple<T> {
+    Tuple::new(x, y, z, w)
+}
+
+pub fn point<T: Num + Copy + Into<f64>>(x: T, y: T, z: T) -> Tuple<T> {
+    Tuple::new(x, y, z, one())
+}
+
+pub fn vector<T: Num + Copy + Into<f64>>(x: T, y: T, z: T) -> Tuple<T> {
+    Tuple::new(x, y, z, zero())
 }
 
 #[cfg(test)]
@@ -114,13 +182,13 @@ mod tests {
     #[test]
     fn test_point_create_tuple_with_w_eq_1() {
         let a = point(4, -4, 3);
-        assert_eq!(a, Tuple::new(4.0, -4.0, 3.0, 1.0));
+        assert_eq!(a, Tuple::new(4, -4, 3, 1));
         assert!(a.is_point());
     }
     #[test]
     fn test_vector_create_tuple_with_w_eq_0() {
         let a = vector(4, -4, 3);
-        assert_eq!(a, Tuple::new(4.0, -4.0, 3.0, 0.0));
+        assert_eq!(a, Tuple::new(4, -4, 3, 0));
         assert!(a.is_vector());
     }
 
@@ -191,10 +259,85 @@ mod tests {
     }
 
     #[test]
-    fn multiplying_a_tuple_by_scalar() {
+    fn multiplying_integer_tuple_by_integer_scalar() {
         let a = tuple(1, -2, 3, -4);
-        let result = a * 3.5;
-
-        assert_eq!(result, tuple(3.5, -7.0, 10.5, -14.0));
+        assert_eq!(a * 2, tuple(2, -4, 6, -8));
     }
+
+    #[test]
+    fn multiplying_integer_tuple_by_float() {
+        let a = tuple(1, -2, 3, -4);
+
+        assert_eq!(a * 0.5, tuple(0.5, -1.0, 1.5, -2.0));
+    }
+
+    #[test]
+    fn multiplying_float_tuple_by_integer() {
+        let a = tuple(1.0, 2.0, 3.0, 4.0);
+
+        assert_eq!(a * 2, tuple(2.0, 4.0, 6.0, 8.0))
+    }
+
+    #[test]
+    fn multiplying_float_tuple_by_float() {
+        let a = tuple(1.0, 2.0, 3.0, 4.0);
+
+        assert_eq!(a * 2.0, tuple(2.0, 4.0, 6.0, 8.0))
+    }
+
+    #[test]
+    fn dividing_integer_tuple_by_integer_scalar() {
+        let a = tuple(2, -2, 3, 5);
+        assert_eq!(a / 2, tuple(1.0, -1.0, 1.5, 2.5));
+    }
+
+    #[test]
+    fn dividing_integer_tuple_by_float_scalar() {
+        let a = tuple(2, -2, 3, 5);
+        assert_eq!(a / 2.0, tuple(1.0, -1.0, 1.5, 2.5));
+    }
+
+    #[test]
+    fn dividing_float_tuple_by_integer_scalar() {
+        let a = tuple(2.0, -2.0, 3.0, 5.0);
+        assert_eq!(a / 2.0, tuple(1.0, -1.0, 1.5, 2.5));
+    }
+
+    #[test]
+    fn dividing_float_tuple_by_float_scalar() {
+        let a = tuple(2.0, -2.0, 3.0, 5.0);
+        assert_eq!(a / 2.0, tuple(1.0, -1.0, 1.5, 2.5));
+    }
+
+    #[test]
+    fn magnitude_of_1_0_0_vector_is_1() {
+        let vector = vector(1, 0, 0);
+        assert_eq!(1.0, vector.magnitude());
+    }
+
+
+    #[test]
+    fn magnitude_of_0_1_0_vector_is_1() {
+        let vector = vector(0, 1, 0);
+        assert_eq!(1.0, vector.magnitude());
+    }
+
+    #[test]
+    fn magnitude_of_0_0_1_vector_is_1() {
+        let vector = vector(0, 0, 1);
+        assert_eq!(1.0, vector.magnitude());
+    }
+
+    #[test]
+    fn computes_properly_magnitude_of_int_vectors() {
+        let vector = vector(-1, -2, -3);
+        assert_eq!(14f64.sqrt(), vector.magnitude());
+    }
+
+    #[test]
+    fn computes_properly_magnitude_of_floart_vectors() {
+        let vector = vector(10.0, 20.0, -30.0);
+        assert_eq!(1400f64.sqrt(), vector.magnitude());
+    }
+
 }
