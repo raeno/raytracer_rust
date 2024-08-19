@@ -1,7 +1,7 @@
 use num::{one, zero, Num};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
     x: T,
     y: T,
@@ -9,19 +9,33 @@ pub struct Tuple<T> {
     w: T,
 }
 
-// impl From<Tuple<i64>> for Tuple<f64> {
-//     fn from(item: Tuple<i64>) -> Self {
-//         Self::new(item.x as f64, item.y as f64, item.z as f64, item.w as f64)
-//     }
-// }
-
 pub trait Magnitude {
     fn magnitude(&self) -> f64;
 }
 
-impl Into<Tuple<f64>> for Tuple<i32> {
-    fn into(self) -> Tuple<f64> {
-        Tuple::new(self.x.into(), self.y.into(), self.z.into(), self.w.into())
+pub trait Normalize {
+    type Output;
+    fn normalize(&self) -> Self::Output;
+}
+
+pub trait Dot<Rhs = Self> {
+    type Output;
+    fn dot(&self, rhs: &Rhs) -> Self::Output;
+}
+
+pub trait CrossProduct<Rhs = Self> {
+    type Output;
+    fn cross(&self, rhs: &Rhs) -> Self::Output;
+}
+
+impl From<Tuple<i32>> for Tuple<f64> {
+    fn from(tuple: Tuple<i32>) -> Self {
+        Self::new(
+            tuple.x.into(),
+            tuple.y.into(),
+            tuple.z.into(),
+            tuple.w.into(),
+        )
     }
 }
 
@@ -40,8 +54,6 @@ impl<T: Num + Copy + Into<f64>> Tuple<T> {
         fw == zero()
     }
 }
-
-
 
 impl<T: Num + Copy + Into<f64>> Add<Tuple<T>> for Tuple<T> {
     type Output = Tuple<T>;
@@ -133,10 +145,39 @@ where
 
 impl<T: Num + Copy + Into<f64>> Magnitude for Tuple<T> {
     fn magnitude(&self) -> f64 {
-        let square_sum = (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).into();
+        let square_sum =
+            (self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w).into();
         square_sum.sqrt()
     }
+}
 
+impl<T: Num + Copy + Into<f64>> Normalize for Tuple<T> {
+    type Output = Tuple<f64>;
+    fn normalize(&self) -> Self::Output {
+        let magnitude = self.magnitude();
+        let f64_tuple: Tuple<f64> =
+            Tuple::new(self.x.into(), self.y.into(), self.z.into(), self.w.into());
+        f64_tuple / magnitude
+    }
+}
+
+impl<T: Num + Copy + Into<f64>> Dot for Tuple<T> {
+    type Output = T;
+    fn dot(&self, vec: &Tuple<T>) -> Self::Output {
+        self.x * vec.x + self.y * vec.y + self.z * vec.z + self.w * vec.w
+    }
+}
+
+impl<T: Num + Copy + Into<f64>> CrossProduct for Tuple<T> {
+    type Output = Tuple<T>;
+    fn cross(&self, vec: &Self) -> Self::Output {
+        Self::Output::new(
+            self.y * vec.z - self.z * vec.y,
+            self.z * vec.x - self.x * vec.z,
+            self.x * vec.y - self.y * vec.x,
+            zero()
+        )
+    }
 }
 
 pub fn tuple<T: Num + Copy + Into<f64>>(x: T, y: T, z: T, w: T) -> Tuple<T> {
@@ -300,7 +341,7 @@ mod tests {
     #[test]
     fn dividing_float_tuple_by_integer_scalar() {
         let a = tuple(2.0, -2.0, 3.0, 5.0);
-        assert_eq!(a / 2.0, tuple(1.0, -1.0, 1.5, 2.5));
+        assert_eq!(a / 2, tuple(1.0, -1.0, 1.5, 2.5));
     }
 
     #[test]
@@ -314,7 +355,6 @@ mod tests {
         let vector = vector(1, 0, 0);
         assert_eq!(1.0, vector.magnitude());
     }
-
 
     #[test]
     fn magnitude_of_0_1_0_vector_is_1() {
@@ -340,4 +380,59 @@ mod tests {
         assert_eq!(1400f64.sqrt(), vector.magnitude());
     }
 
+    #[test]
+    fn normalizing_vector_4_0_0_gives_1_0_0() {
+        let v1 = vector(4, 0, 0);
+        let unit: Tuple<f64> = vector(1.0, 0.0, 0.0);
+        assert_eq!(unit, v1.normalize());
+    }
+
+    #[test]
+    fn normalizing_vector_1_2_3() {
+        let v1 = vector(1, 2, 3);
+
+        let length = 1.0 / 14f64.sqrt();
+        let expected = vector(length, length * 2.0, length * 3.0);
+        assert_eq!(expected, v1.normalize());
+    }
+
+    #[test]
+    fn magnitude_of_normalized_vector() {
+        let v = vector(1, 2, 3);
+        let norm = v.normalize();
+
+        assert_eq!(1.0, norm.magnitude());
+    }
+
+    #[test]
+    fn dot_product_of_two_vectors() {
+        let a = vector(1, 2, 3);
+        let b = vector(2, 3, 4);
+
+        assert_eq!(20, a.dot(&b));
+    }
+
+    #[test]
+    fn dot_product_of_two_f64_vectors() {
+        let a = vector(10.0, 20.0, 30.0);
+        let b = vector(1.0, 1.0, 1.0);
+
+        assert_eq!(60.0, a.dot(&b));
+    }
+
+    #[test]
+    fn cross_product_of_integer_vectors() {
+        let a = vector(1,2,3);
+        let b = vector(2,3,4);
+        assert_eq!(vector(-1,2,-1), a.cross(&b));
+        assert_eq!(vector(1,-2,1), b.cross(&a));
+    }
+
+    #[test]
+    fn cross_product_of_float_vectors() {
+        let a = vector(1.0, 2.0, 3.0);
+        let b = vector(2.0, 3.0, 4.0);
+        assert_eq!(vector(-1.0, 2.0, -1.0), a.cross(&b));
+        assert_eq!(vector(1.0,-2.0,1.0), b.cross(&a));
+    }
 }
