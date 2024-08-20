@@ -7,19 +7,22 @@ type Vector = Tuple<f64>;
 #[derive(Debug)]
 pub struct Projectile {
     pub position: Point,
-    pub velocity: Vector
-} 
+    pub velocity: Vector,
+}
 
 impl Display for Projectile {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Position: ({}), Velocity: ({})", self.position, self.velocity)
+        write!(
+            f,
+            "Position: ({}), Velocity: ({})",
+            self.position, self.velocity
+        )
     }
-
 }
 
 pub struct Environment {
     pub gravity: Vector,
-    pub wind: Vector
+    pub wind: Vector,
 }
 
 impl Projectile {

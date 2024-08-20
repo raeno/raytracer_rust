@@ -1,6 +1,6 @@
 use num::{one, zero, Num};
-use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::fmt::Display;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
@@ -182,7 +182,7 @@ impl<T: Num + Copy + Into<f64>> CrossProduct for Tuple<T> {
             self.y * vec.z - self.z * vec.y,
             self.z * vec.x - self.x * vec.z,
             self.x * vec.y - self.y * vec.x,
-            zero()
+            zero(),
         )
     }
 }
@@ -429,10 +429,10 @@ mod tests {
 
     #[test]
     fn cross_product_of_integer_vectors() {
-        let a = vector(1,2,3);
-        let b = vector(2,3,4);
-        assert_eq!(vector(-1,2,-1), a.cross(&b));
-        assert_eq!(vector(1,-2,1), b.cross(&a));
+        let a = vector(1, 2, 3);
+        let b = vector(2, 3, 4);
+        assert_eq!(vector(-1, 2, -1), a.cross(&b));
+        assert_eq!(vector(1, -2, 1), b.cross(&a));
     }
 
     #[test]
@@ -440,6 +440,6 @@ mod tests {
         let a = vector(1.0, 2.0, 3.0);
         let b = vector(2.0, 3.0, 4.0);
         assert_eq!(vector(-1.0, 2.0, -1.0), a.cross(&b));
-        assert_eq!(vector(1.0,-2.0,1.0), b.cross(&a));
+        assert_eq!(vector(1.0, -2.0, 1.0), b.cross(&a));
     }
 }

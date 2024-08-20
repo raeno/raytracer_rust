@@ -1,10 +1,10 @@
-pub mod tuple;
 pub mod cannon;
+pub mod tuple;
 
 use tuple::Normalize;
 
+use crate::cannon::{environment, projectile, tick};
 use crate::tuple::{point, vector};
-use crate::cannon::{projectile, environment, tick};
 
 fn main() {
     let mut bullet = projectile(point(0, 1, 0).into(), vector(1, 1, 0).normalize());
@@ -15,4 +15,3 @@ fn main() {
     }
     println!("Final bullet position: {}", bullet);
 }
-
