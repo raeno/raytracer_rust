@@ -1,12 +1,19 @@
 use num::{one, zero, Num};
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::fmt::Display;
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
-    x: T,
-    y: T,
-    z: T,
+    pub x: T,
+    pub y: T,
+    pub z: T,
     w: T,
+}
+
+impl<T: Num + Copy + Into<f64> + Display> Display for Tuple<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({:.4} {:.4} {:.4})", self.x, self.y, self.z)
+    }
 }
 
 pub trait Magnitude {
