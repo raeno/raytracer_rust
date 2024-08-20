@@ -1,6 +1,7 @@
 use num::{one, zero, Num};
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use approx::{AbsDiffEq, RelativeEq};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
@@ -184,6 +185,38 @@ impl<T: Num + Copy + Into<f64>> CrossProduct for Tuple<T> {
             self.x * vec.y - self.y * vec.x,
             zero(),
         )
+    }
+}
+
+impl<T: AbsDiffEq> AbsDiffEq for Tuple<T> where
+    T::Epsilon: Copy,
+{
+    type Epsilon = T::Epsilon;
+
+    fn default_epsilon() -> T::Epsilon {
+        T::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
+        T::abs_diff_eq(&self.x, &other.x, epsilon) &&
+        T::abs_diff_eq(&self.y, &other.y, epsilon) &&
+        T::abs_diff_eq(&self.z, &other.z, epsilon) &&
+        T::abs_diff_eq(&self.w, &other.w, epsilon)
+    }
+}
+
+impl<T: RelativeEq> RelativeEq for Tuple<T> where
+    T::Epsilon: Copy,
+{
+    fn default_max_relative() -> T::Epsilon {
+        T::default_max_relative()
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
+        T::relative_eq(&self.x, &other.x, epsilon, max_relative) &&
+        T::relative_eq(&self.y, &other.y, epsilon, max_relative) &&
+        T::relative_eq(&self.z, &other.z, epsilon, max_relative) &&
+        T::relative_eq(&self.w, &other.w, epsilon, max_relative)
     }
 }
 

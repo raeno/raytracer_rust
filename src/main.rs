@@ -1,5 +1,9 @@
 pub mod cannon;
 pub mod tuple;
+pub mod color;
+
+#[macro_use]
+extern crate approx;
 
 use tuple::Normalize;
 
