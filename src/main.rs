@@ -1,6 +1,7 @@
 pub mod cannon;
 pub mod tuple;
 pub mod color;
+pub mod canvas;
 
 #[macro_use]
 extern crate approx;

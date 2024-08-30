@@ -1,34 +1,140 @@
-use crate::tuple::Tuple;
-use std::ops::Mul;
+use num::zero;
+use std::ops::{Add, Sub, Mul, Div};
+use approx::{AbsDiffEq, RelativeEq};
 
-type Color = Tuple<f64>;
+use crate::tuple::Tuple;
+
+#[derive(PartialEq, Clone, Debug, Copy)]
+pub struct Color(Tuple<f64>);
+
 
 impl Color {
-    pub fn red(&self) -> f64 {
-        self.x
+    pub fn new(red: f64, green: f64, blue: f64) -> Self {
+        Self(Tuple::new(red, green, blue, 0.0))
     }
+
+    pub fn red(&self) -> f64 {
+        self.0.x
+    }
+
     pub fn green(&self) -> f64 {
-        self.y
+        self.0.y
     }
     pub fn blue(&self) -> f64 {
-        self.z
+        self.0.z
+    }
+
+    pub fn is_black(&self) -> bool {
+        self.red() == zero() && self.green() == zero() && self.blue() == zero()
     }
 }
 
-impl Mul for Color {
+impl Add for Color {
     type Output = Color;
-    fn mul(self, rhs: Self) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl Sub for Color {
+    type Output = Color;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
+    }
+}
+
+impl Mul<Color> for Color {
+    type Output = Color;
+    fn mul(self, rhs: Color) -> Self::Output {
         Self::new(
             self.red() * rhs.red(),
             self.green() * rhs.green(),
-            self.blue() * rhs.blue(),
-            0.0
+            self.blue() * rhs.blue()
         )
     }
 }
 
+impl Div<f64> for Color {
+    type Output = Color;
+    fn div(self, rhs: f64) -> Self::Output {
+        Self(self.0 / rhs)
+    }
+}
+
+impl Div<i32> for Color {
+    type Output = Color;
+    fn div(self, rhs: i32) -> Self::Output {
+        Self(self.0 / rhs)
+    }
+}
+
+impl Mul<f64> for Color {
+    type Output = Color;
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+
+impl Mul<i32> for Color {
+    type Output = Color;
+    fn mul(self, rhs: i32) -> Self::Output {
+        Self(self.0 * rhs)
+    }
+}
+
+impl AbsDiffEq for Color where
+{
+   type Epsilon = <Tuple<f64> as AbsDiffEq>::Epsilon;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        Tuple::abs_diff_eq(&self.0, &other.0, epsilon)
+    }
+}
+
+impl RelativeEq for Color where {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::default_max_relative()
+    }
+
+    fn relative_eq(&self, other: &Self, epsilon: Self::Epsilon, max_relative: Self::Epsilon) -> bool {
+        Tuple::relative_eq(&self.0, &other.0, epsilon, max_relative)
+    }
+}
+
+pub fn color_i8(red: i8, green: i8, blue: i8) -> Color {
+    Color::new(red.into(), blue.into(), green.into())
+}
+
 pub fn color(red: f64, green: f64, blue: f64) -> Color {
-    Color::new(red, green, blue, 0.0)
+    Color::new(red, green, blue)
+}
+
+pub struct Colors;
+
+impl Colors {
+    pub fn black() -> Color {
+        Color::new(0.0, 0.0, 0.0)
+    }
+
+    pub fn red() -> Color {
+        Color::new(1.0, 0.0, 0.0)
+    }
+
+    pub fn green() -> Color {
+        Color::new(0.0, 1.0, 0.0)
+    }
+
+    pub fn blue() -> Color {
+        Color::new(0.0, 0.0, 1.0)
+    }
+
+    pub fn white() -> Color {
+        Color::new(1.0, 1.0, 1.0)
+    }
 }
 
 #[cfg(test)]
