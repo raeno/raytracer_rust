@@ -1,9 +1,9 @@
 use crate::color::{color, Color, Colors};
 
-struct Canvas {
-    width: usize,
-    height: usize,
-    pixels: Vec<Vec<Color>>,
+pub struct Canvas {
+    pub width: usize,
+    pub height: usize,
+    pub pixels: Vec<Vec<Color>>,
 }
 
 impl Canvas {
@@ -25,6 +25,10 @@ impl Canvas {
     }
 
     pub fn write_pixel(&mut self, x: usize, y: usize, c: Color) {
+        if x >= self.width || y >= self.height {
+            return;
+        }
+
         self.pixels[y][x] = c;
     }
 
@@ -32,6 +36,11 @@ impl Canvas {
         self.pixels[y][x]
     }
 }
+
+pub fn canvas(width: usize, height: usize) -> Canvas {
+    Canvas::new(width, height)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
