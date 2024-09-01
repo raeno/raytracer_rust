@@ -3,6 +3,7 @@ pub mod canvas;
 pub mod color;
 pub mod ppm_file;
 pub mod tuple;
+pub mod matrix;
 
 #[macro_use]
 extern crate approx;
