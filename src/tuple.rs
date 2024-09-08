@@ -8,7 +8,7 @@ pub struct Tuple<T> {
     pub x: T,
     pub y: T,
     pub z: T,
-    w: T,
+    pub w: T,
 }
 
 impl<T: Num + Copy + Into<f64> + Display> Display for Tuple<T> {
@@ -111,6 +111,7 @@ impl Mul<i32> for Tuple<f64> {
         self * rhs as f64
     }
 }
+
 
 impl<T> Div<T> for Tuple<f64>
 where
