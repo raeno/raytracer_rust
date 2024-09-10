@@ -4,108 +4,25 @@ use std::ops::{Index, Mul};
 pub trait Identity {
     fn identity() -> Self;
 }
-
 #[derive(PartialEq, Clone, Debug)]
-pub struct Matrix2 {
-    cells: [[f64; 2]; 2],
+pub struct Matrix<const N: usize> {
+    cells: [[f64; N]; N]
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct Matrix3 {
-    cells: [[f64; 3]; 3],
+pub type Matrix2 = Matrix<2>;
+pub type Matrix3 = Matrix<3>;
+pub type Matrix4 = Matrix<4>;
+
+pub trait Transpose {
+    fn transpose(&self) -> Self;
 }
 
-#[derive(PartialEq, Clone, Debug)]
-pub struct Matrix4 {
-    cells: [[f64; 4]; 4],
-}
-
-impl Matrix2 {
-    pub fn new(m11: f64, m12: f64, m21: f64, m22: f64) -> Self {
-        Self {
-            cells: [[m11, m12], [m21, m22]],
-        }
-    }
-}
-
-impl Index<usize> for Matrix2 {
-    type Output = [f64; 2];
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.cells[index]
-    }
-}
-
-impl Identity for Matrix2 {
-    fn identity() -> Self {
-        Self::new(1.0, 0.0, 0.0, 1.0)
-    }
-}
-
-impl Index<usize> for Matrix3 {
-    type Output = [f64; 3];
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.cells[index]
-    }
-}
-
-impl Matrix3 {
-    pub fn new(
-        m11: f64,
-        m12: f64,
-        m13: f64,
-        m21: f64,
-        m22: f64,
-        m23: f64,
-        m31: f64,
-        m32: f64,
-        m33: f64,
-    ) -> Self {
-        Self {
-            cells: [[m11, m12, m13], [m21, m22, m23], [m31, m32, m33]],
-        }
-    }
-}
-
-impl Identity for Matrix3 {
-    fn identity() -> Self {
-        Self::new(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
-    }
-}
-
-impl Matrix4 {
-    pub fn new(
-        m11: f64,
-        m12: f64,
-        m13: f64,
-        m14: f64,
-        m21: f64,
-        m22: f64,
-        m23: f64,
-        m24: f64,
-        m31: f64,
-        m32: f64,
-        m33: f64,
-        m34: f64,
-        m41: f64,
-        m42: f64,
-        m43: f64,
-        m44: f64,
-    ) -> Self {
-        Self {
-            cells: [
-                [m11, m12, m13, m14],
-                [m21, m22, m23, m24],
-                [m31, m32, m33, m34],
-                [m41, m42, m43, m44],
-            ],
-        }
-    }
-
-    pub fn row(&self, index: usize) -> [f64; 4] {
+impl<const N: usize> Matrix<N> {
+    pub fn row(&self, index: usize) -> [f64; N] {
         self.cells[index]
     }
 
-    pub fn col(&self, index: usize) -> [f64; 4] {
+    pub fn col(&self, index: usize) -> [f64; N] {
         self.cells.map(|row| row[index])
     }
 
@@ -114,39 +31,98 @@ impl Matrix4 {
     }
 }
 
-impl Identity for Matrix4 {
-    fn identity() -> Self {
-        Self::new(
-            1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-        )
-    }
-}
-
-impl Index<usize> for Matrix4 {
-    type Output = [f64; 4];
+impl<const N: usize> Index<usize> for Matrix<N> {
+    type Output = [f64; N];
     fn index(&self, index: usize) -> &Self::Output {
         &self.cells[index]
     }
 }
 
-impl Mul<Matrix4> for Matrix4 {
-    type Output = Matrix4;
+impl Matrix<2> {
+    pub fn new(m00: f64, m01: f64, m10: f64, m11: f64) -> Self {
+        Self {
+            cells: [[m00, m01], [m10, m11]],
+        }
+    }
+}
 
-    fn mul(self, rhs: Matrix4) -> Self::Output {
-        let mut cells = [[0.0; 4]; 4];
-        for row_i in 0..4 {
-            for col_i in 0..4 {
-                cells[row_i][col_i] = self.cell(row_i, 0) * rhs.cell(0, col_i)
-                    + self.cell(row_i, 1) * rhs.cell(1, col_i)
-                    + self.cell(row_i, 2) * rhs.cell(2, col_i)
-                    + self.cell(row_i, 3) * rhs.cell(3, col_i)
+impl<const N: usize> Identity for Matrix<N> {
+    fn identity() -> Self {
+        let rows = (0..N).map( |i| 
+            (0..N).map( |j| if i == j { 1.0 } else { 0.0 } ).collect::<Vec<f64>>().try_into().unwrap()
+        ).collect::<Vec<[f64; N]>>().try_into().unwrap();
+        Self { cells: rows }
+    }
+}
+
+
+impl Matrix<3> {
+    pub fn new(
+        m00: f64,
+        m01: f64,
+        m02: f64,
+        m10: f64,
+        m11: f64,
+        m12: f64,
+        m20: f64,
+        m21: f64,
+        m22: f64,
+    ) -> Self {
+        Self {
+            cells: [[m00, m01, m02], [m10, m11, m12], [m20, m21, m22]],
+        }
+    }
+}
+
+impl Matrix<4> {
+    pub fn new(
+        m00: f64,
+        m01: f64,
+        m02: f64,
+        m03: f64,
+        m10: f64,
+        m11: f64,
+        m12: f64,
+        m13: f64,
+        m20: f64,
+        m21: f64,
+        m22: f64,
+        m23: f64,
+        m30: f64,
+        m31: f64,
+        m32: f64,
+        m33: f64,
+    ) -> Self {
+        Self {
+            cells: [
+                [m00, m01, m02, m03],
+                [m10, m11, m12, m13],
+                [m20, m21, m22, m23],
+                [m30, m31, m32, m33],
+            ],
+        }
+    }
+
+
+}
+
+
+impl<const N: usize> Mul<Matrix<N>> for Matrix<N> {
+    type Output = Matrix<N>;
+
+    fn mul(self, rhs: Matrix<N>) -> Self::Output {
+        let mut cells = [[0.0; N]; N];
+        for row_i in 0..N {
+            for col_i in 0..N {
+                let sum = (0..N).map( |i| self.cell(row_i, i) * rhs.cell(i, col_i) ).sum();
+                cells[row_i][col_i] = sum
             }
         }
         Self::Output { cells }
     }
 }
 
-impl Mul<Tuple<f64>> for Matrix4 {
+impl Mul<Tuple<f64>> for Matrix<4> {
     type Output = Tuple<f64>;
     fn mul(self, rhs: Tuple<f64>) -> Self::Output {
         let sums = (0..4)
@@ -158,6 +134,16 @@ impl Mul<Tuple<f64>> for Matrix4 {
             })
             .collect::<Vec<f64>>();
         Self::Output::new(sums[0], sums[1], sums[2], sums[3])
+    }
+}
+
+impl<const N: usize> Transpose for Matrix<N> {
+    fn transpose(&self) -> Self {
+        let mut cells = [[0.0; N]; N];
+        for i in 0..N {
+            cells[i] = self.col(i)
+        }
+        Self { cells }
     }
 }
 
@@ -286,5 +272,38 @@ mod tests {
     fn test_multiplying_identity_matrix_by_tuple() {
         let a = tuple(1.0, 2.0, 3.0, 4.0);
         assert_eq!(a.clone(), Matrix4::identity() * a);
+    }
+
+    #[test]
+    fn transposing_2x2_matrix() {
+        let m = Matrix2::new(1.0, 2.0, 3.0, 4.0);
+        let transposed = Matrix2::new(1.0, 3.0, 2.0, 4.0);
+
+        assert_eq!(transposed, m.transpose());
+    }
+
+    #[test]
+    fn transposing_4x4_matrix() {
+        let m = Matrix4::new(
+            0.0, 9.0, 3.0, 0.0,
+            9.0, 8.0, 3.0, 8.0,
+            1.0, 8.0, 5.0, 3.0,
+            0.0, 0.0, 5.0, 8.0
+        );
+        let transposed = Matrix4::new(
+            0.0, 9.0, 1.0, 0.0,
+            9.0, 8.0, 8.0, 0.0,
+            3.0, 3.0, 5.0, 5.0,
+            0.0, 8.0, 3.0, 8.0
+        );
+
+        assert_eq!(transposed, m.transpose());
+    }
+
+    #[test]
+    fn transposing_identity_matrix() {
+        assert_eq!(Matrix2::identity(), Matrix2::identity().transpose());
+        assert_eq!(Matrix3::identity(), Matrix3::identity().transpose());
+        assert_eq!(Matrix4::identity(), Matrix4::identity().transpose());
     }
 }
