@@ -6,7 +6,7 @@ pub trait Identity {
 }
 #[derive(PartialEq, Clone, Debug)]
 pub struct Matrix<const N: usize> {
-    cells: [[f64; N]; N]
+    cells: [[f64; N]; N],
 }
 
 pub type Matrix2 = Matrix<2>;
@@ -48,13 +48,20 @@ impl Matrix<2> {
 
 impl<const N: usize> Identity for Matrix<N> {
     fn identity() -> Self {
-        let rows = (0..N).map( |i| 
-            (0..N).map( |j| if i == j { 1.0 } else { 0.0 } ).collect::<Vec<f64>>().try_into().unwrap()
-        ).collect::<Vec<[f64; N]>>().try_into().unwrap();
+        let rows = (0..N)
+            .map(|i| {
+                (0..N)
+                    .map(|j| if i == j { 1.0 } else { 0.0 })
+                    .collect::<Vec<f64>>()
+                    .try_into()
+                    .unwrap()
+            })
+            .collect::<Vec<[f64; N]>>()
+            .try_into()
+            .unwrap();
         Self { cells: rows }
     }
 }
-
 
 impl Matrix<3> {
     pub fn new(
@@ -102,10 +109,7 @@ impl Matrix<4> {
             ],
         }
     }
-
-
 }
-
 
 impl<const N: usize> Mul<Matrix<N>> for Matrix<N> {
     type Output = Matrix<N>;
@@ -114,7 +118,9 @@ impl<const N: usize> Mul<Matrix<N>> for Matrix<N> {
         let mut cells = [[0.0; N]; N];
         for row_i in 0..N {
             for col_i in 0..N {
-                let sum = (0..N).map( |i| self.cell(row_i, i) * rhs.cell(i, col_i) ).sum();
+                let sum = (0..N)
+                    .map(|i| self.cell(row_i, i) * rhs.cell(i, col_i))
+                    .sum();
                 cells[row_i][col_i] = sum
             }
         }
@@ -285,16 +291,10 @@ mod tests {
     #[test]
     fn transposing_4x4_matrix() {
         let m = Matrix4::new(
-            0.0, 9.0, 3.0, 0.0,
-            9.0, 8.0, 3.0, 8.0,
-            1.0, 8.0, 5.0, 3.0,
-            0.0, 0.0, 5.0, 8.0
+            0.0, 9.0, 3.0, 0.0, 9.0, 8.0, 3.0, 8.0, 1.0, 8.0, 5.0, 3.0, 0.0, 0.0, 5.0, 8.0,
         );
         let transposed = Matrix4::new(
-            0.0, 9.0, 1.0, 0.0,
-            9.0, 8.0, 8.0, 0.0,
-            3.0, 3.0, 5.0, 5.0,
-            0.0, 8.0, 3.0, 8.0
+            0.0, 9.0, 1.0, 0.0, 9.0, 8.0, 8.0, 0.0, 3.0, 3.0, 5.0, 5.0, 0.0, 8.0, 3.0, 8.0,
         );
 
         assert_eq!(transposed, m.transpose());
