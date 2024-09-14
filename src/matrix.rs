@@ -17,6 +17,20 @@ pub trait Transpose {
     fn transpose(&self) -> Self;
 }
 
+pub trait Determinant {
+    fn determinant(&self) -> f64;
+}
+
+pub trait Submatrix {
+    type Output;
+    fn submatrix(&self, row: usize, col: usize) -> Self::Output;
+}
+
+pub trait Minor {
+    fn minor(&self, row: usize, col: usize) -> f64;
+    fn cofactor(&self, row: usize, col: usize) -> f64;
+}
+
 impl<const N: usize> Matrix<N> {
     pub fn row(&self, index: usize) -> [f64; N] {
         self.cells[index]
@@ -152,6 +166,90 @@ impl<const N: usize> Transpose for Matrix<N> {
         Self { cells }
     }
 }
+
+impl Determinant for Matrix<2> {
+    fn determinant(&self) -> f64 {
+        self.cell(0, 0) * self.cell(1, 1) - self.cell(0, 1) * self.cell(1, 0)
+    }
+}
+
+impl Determinant for Matrix<3> {
+    fn determinant(&self) -> f64 {
+        self.row(0).into_iter().enumerate().map( |(index, cell)| cell * self.cofactor(0, index) ).sum()
+    }
+}
+
+impl Determinant for Matrix<4> {
+    fn determinant(&self) -> f64 {
+        self.row(0).into_iter().enumerate().map( |(index, cell)| cell * self.cofactor(0, index) ).sum()
+    }
+}
+
+impl Submatrix for Matrix<3> {
+    type Output = Matrix<2>;
+    fn submatrix(&self, row: usize, col: usize) -> Self::Output {
+        let mut rows: Vec<[f64;2]> = Vec::new();
+        for i in 0..3 {
+            if i == row {
+                continue; // skip row when it matches passed column
+            }
+            let mut cells: Vec<f64> = Vec::new();
+            for j in 0..3 {
+                if j == col {
+                    continue; // skip cell when it matches both row and column
+                }
+                cells.push(self.cell(i, j))
+            }
+            let new_row = cells.try_into().unwrap();
+            rows.push(new_row)
+        }
+        Matrix2 { cells: rows.try_into().unwrap() }
+    }
+}
+
+impl Submatrix for Matrix<4> {
+    type Output = Matrix<3>;
+    fn submatrix(&self, row: usize, col: usize) -> Self::Output {
+        let mut rows: Vec<[f64;3]> = Vec::new();
+        for i in 0..4 {
+            if i == row {
+                continue; // skip row when it matches passed column
+            }
+            let mut cells: Vec<f64> = Vec::new();
+            for j in 0..4 {
+                if j == col {
+                    continue; // skip cell when it matches both row and column
+                }
+                cells.push(self.cell(i, j));
+            }
+            rows.push(cells.try_into().unwrap())
+        }
+        Matrix3 { cells: rows.try_into().unwrap() }
+    }
+}
+
+impl Minor for Matrix<3> {
+    fn minor(&self, row: usize, col: usize) -> f64 {
+        self.submatrix(row, col).determinant()
+    }
+
+    fn cofactor(&self, row: usize, col: usize) -> f64 {
+        let minor = self.minor(row, col);
+        if (row + col) % 2 == 0 { minor } else { -minor }
+    }
+}
+
+impl Minor for Matrix<4> {
+    fn minor(&self, row: usize, col: usize) -> f64 {
+        self.submatrix(row, col).determinant()
+    }
+
+    fn cofactor(&self, row: usize, col: usize) -> f64 {
+        let minor = self.minor(row, col);
+        if (row + col) % 2 == 0 { minor } else { -minor }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -306,4 +404,83 @@ mod tests {
         assert_eq!(Matrix3::identity(), Matrix3::identity().transpose());
         assert_eq!(Matrix4::identity(), Matrix4::identity().transpose());
     }
+
+    #[test]
+    fn determinant_of_2x2_matrix() {
+        let m = Matrix2::new(1.0, 5.0, -3.0, 2.0);
+        assert_eq!(17.0, m.determinant());
+    }
+
+    #[test]
+    fn submatrix_of_3x3_matrix_is_2x2_matrix() {
+        let m = Matrix3::new(1.0, 5.0, 0.0, -3.0, 2.0, 7.0, 0.0, 6.0, -3.0);
+        let submatrix = Matrix2::new(-3.0, 2.0, 0.0, 6.0);
+
+        assert_eq!(submatrix, m.submatrix(0, 2));
+    }
+
+    #[test]
+    fn submatrix_of_4x4_matrix_is_3x3_matrix() {
+        let m = Matrix4::new(
+            -6.0, 1.0, 1.0, 6.0,
+            -8.0, 5.0, 8.0, 6.0,
+            -1.0, 0.0, 8.0, 2.0,
+            -7.0, 1.0, -1.0, 1.0
+        );
+        let submatrix = Matrix3::new(
+            -6.0, 1.0, 6.0,
+            -8.0, 8.0, 6.0,
+            -7.0, -1.0, 1.0
+        );
+        assert_eq!(submatrix, m.submatrix(2, 1))
+    }
+
+    #[test]
+    fn minor_of_3x3_submatrix() {
+        let m = Matrix3::new(
+            3.0, 5.0, 0.0,
+            2.0, -1.0, -7.0,
+            6.0, -1.0, 5.0
+        );
+        let b = m.submatrix(1, 0);
+        assert_eq!(25.0, b.determinant());
+        assert_eq!(25.0, m.minor(1, 0));
+    }
+
+    #[test]
+    fn cofactor_of_3x3_matrix() {
+        let m = Matrix3::new(
+            3.0, 5.0, 0.0,
+            2.0, -1.0, -7.0,
+            6.0, -1.0, 5.0
+        );
+        assert_eq!(-12.0, m.cofactor(0, 0));
+        assert_eq!(-25.0, m.cofactor(1, 0));
+    }
+
+    #[test]
+    fn calculating_determinant_of_3x3_matrix() {
+        let m = Matrix3::new(1.0, 2.0, 6.0, -5.0, 8.0, -4.0, 2.0, 6.0, 4.0);
+
+        assert_eq!(56.0, m.cofactor(0,0));
+        assert_eq!(12.0, m.cofactor(0, 1));
+        assert_eq!(-46.0, m.cofactor(0,2));
+        assert_eq!(-196.0, m.determinant());
+    }
+
+    #[test]
+    fn calculating_determinant_of_4x4_matrix() {
+        let m = Matrix4::new(
+            -2.0, -8.0, 3.0, 5.0,
+            -3.0, 1.0, 7.0, 3.0,
+            1.0, 2.0, -9.0, 6.0,
+            -6.0, 7.0, 7.0, -9.0
+        );
+        assert_eq!(690.0, m.cofactor(0, 0));
+        assert_eq!(447.0, m.cofactor(0, 1));
+        assert_eq!(210.0, m.cofactor(0, 2));
+        assert_eq!(51.0, m.cofactor(0, 3));
+        assert_eq!(-4071.0, m.determinant());
+    }
+
 }
