@@ -1,5 +1,8 @@
+use approx::{AbsDiffEq, RelativeEq};
+use num::{zero, ToPrimitive};
+
 use crate::tuple::Tuple;
-use std::ops::{Index, Mul};
+use std::ops::{Div, Index, Mul};
 
 pub trait Identity {
     fn identity() -> Self;
@@ -26,6 +29,11 @@ pub trait Submatrix {
     fn submatrix(&self, row: usize, col: usize) -> Self::Output;
 }
 
+pub trait Inverse {
+    fn is_invertible(&self) -> bool;
+    fn inverse(&self) -> Self;
+}
+
 pub trait Minor {
     fn minor(&self, row: usize, col: usize) -> f64;
     fn cofactor(&self, row: usize, col: usize) -> f64;
@@ -42,6 +50,14 @@ impl<const N: usize> Matrix<N> {
 
     pub fn cell(&self, row: usize, col: usize) -> f64 {
         self.cells[row][col]
+    }
+
+    pub fn round(&self, digits: u32) -> Self {
+        let ten_power = 10_u32.pow(digits).to_f64().unwrap();
+        let cells = self
+            .cells
+            .map(|row| row.map(|cell| (cell * ten_power).round() / ten_power));
+        Matrix { cells }
     }
 }
 
@@ -74,6 +90,37 @@ impl<const N: usize> Identity for Matrix<N> {
             .try_into()
             .unwrap();
         Self { cells: rows }
+    }
+}
+
+impl<const N: usize> AbsDiffEq for Matrix<N> {
+    type Epsilon = f64;
+    fn default_epsilon() -> Self::Epsilon {
+        f64::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.cells
+            .into_iter()
+            .zip(other.cells)
+            .all(|(row, other_row)| row.abs_diff_eq(&other_row, epsilon))
+    }
+}
+
+impl<const N: usize> RelativeEq for Matrix<N> {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::default_max_relative()
+    }
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.cells
+            .into_iter()
+            .zip(other.cells)
+            .all(|(row, other_row)| row.relative_eq(&other_row, epsilon, max_relative))
     }
 }
 
@@ -142,6 +189,24 @@ impl<const N: usize> Mul<Matrix<N>> for Matrix<N> {
     }
 }
 
+impl<const N: usize> Mul<f64> for Matrix<N> {
+    type Output = Matrix<N>;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        let cells = self.cells.map(|row| row.map(|cell| cell * rhs));
+        Matrix { cells }
+    }
+}
+
+impl<const N: usize> Div<f64> for Matrix<N> {
+    type Output = Matrix<N>;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        let cells = self.cells.map(|row| row.map(|cell| cell / rhs));
+        Matrix { cells }
+    }
+}
+
 impl Mul<Tuple<f64>> for Matrix<4> {
     type Output = Tuple<f64>;
     fn mul(self, rhs: Tuple<f64>) -> Self::Output {
@@ -175,20 +240,28 @@ impl Determinant for Matrix<2> {
 
 impl Determinant for Matrix<3> {
     fn determinant(&self) -> f64 {
-        self.row(0).into_iter().enumerate().map( |(index, cell)| cell * self.cofactor(0, index) ).sum()
+        self.row(0)
+            .into_iter()
+            .enumerate()
+            .map(|(index, cell)| cell * self.cofactor(0, index))
+            .sum()
     }
 }
 
 impl Determinant for Matrix<4> {
     fn determinant(&self) -> f64 {
-        self.row(0).into_iter().enumerate().map( |(index, cell)| cell * self.cofactor(0, index) ).sum()
+        self.row(0)
+            .into_iter()
+            .enumerate()
+            .map(|(index, cell)| cell * self.cofactor(0, index))
+            .sum()
     }
 }
 
 impl Submatrix for Matrix<3> {
     type Output = Matrix<2>;
     fn submatrix(&self, row: usize, col: usize) -> Self::Output {
-        let mut rows: Vec<[f64;2]> = Vec::new();
+        let mut rows: Vec<[f64; 2]> = Vec::new();
         for i in 0..3 {
             if i == row {
                 continue; // skip row when it matches passed column
@@ -203,14 +276,16 @@ impl Submatrix for Matrix<3> {
             let new_row = cells.try_into().unwrap();
             rows.push(new_row)
         }
-        Matrix2 { cells: rows.try_into().unwrap() }
+        Matrix2 {
+            cells: rows.try_into().unwrap(),
+        }
     }
 }
 
 impl Submatrix for Matrix<4> {
     type Output = Matrix<3>;
     fn submatrix(&self, row: usize, col: usize) -> Self::Output {
-        let mut rows: Vec<[f64;3]> = Vec::new();
+        let mut rows: Vec<[f64; 3]> = Vec::new();
         for i in 0..4 {
             if i == row {
                 continue; // skip row when it matches passed column
@@ -224,7 +299,9 @@ impl Submatrix for Matrix<4> {
             }
             rows.push(cells.try_into().unwrap())
         }
-        Matrix3 { cells: rows.try_into().unwrap() }
+        Matrix3 {
+            cells: rows.try_into().unwrap(),
+        }
     }
 }
 
@@ -235,7 +312,11 @@ impl Minor for Matrix<3> {
 
     fn cofactor(&self, row: usize, col: usize) -> f64 {
         let minor = self.minor(row, col);
-        if (row + col) % 2 == 0 { minor } else { -minor }
+        if (row + col) % 2 == 0 {
+            minor
+        } else {
+            -minor
+        }
     }
 }
 
@@ -246,10 +327,30 @@ impl Minor for Matrix<4> {
 
     fn cofactor(&self, row: usize, col: usize) -> f64 {
         let minor = self.minor(row, col);
-        if (row + col) % 2 == 0 { minor } else { -minor }
+        if (row + col) % 2 == 0 {
+            minor
+        } else {
+            -minor
+        }
     }
 }
 
+impl Inverse for Matrix<4> {
+    fn inverse(&self) -> Self {
+        let mut cells = [[0.0; 4]; 4];
+        for i in 0..4 {
+            for j in 0..4 {
+                cells[i][j] = self.cofactor(i, j)
+            }
+        }
+        let cofactors = Matrix { cells }.transpose();
+        cofactors / self.determinant()
+    }
+
+    fn is_invertible(&self) -> bool {
+        self.determinant() != zero()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -422,26 +523,15 @@ mod tests {
     #[test]
     fn submatrix_of_4x4_matrix_is_3x3_matrix() {
         let m = Matrix4::new(
-            -6.0, 1.0, 1.0, 6.0,
-            -8.0, 5.0, 8.0, 6.0,
-            -1.0, 0.0, 8.0, 2.0,
-            -7.0, 1.0, -1.0, 1.0
+            -6.0, 1.0, 1.0, 6.0, -8.0, 5.0, 8.0, 6.0, -1.0, 0.0, 8.0, 2.0, -7.0, 1.0, -1.0, 1.0,
         );
-        let submatrix = Matrix3::new(
-            -6.0, 1.0, 6.0,
-            -8.0, 8.0, 6.0,
-            -7.0, -1.0, 1.0
-        );
+        let submatrix = Matrix3::new(-6.0, 1.0, 6.0, -8.0, 8.0, 6.0, -7.0, -1.0, 1.0);
         assert_eq!(submatrix, m.submatrix(2, 1))
     }
 
     #[test]
     fn minor_of_3x3_submatrix() {
-        let m = Matrix3::new(
-            3.0, 5.0, 0.0,
-            2.0, -1.0, -7.0,
-            6.0, -1.0, 5.0
-        );
+        let m = Matrix3::new(3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0);
         let b = m.submatrix(1, 0);
         assert_eq!(25.0, b.determinant());
         assert_eq!(25.0, m.minor(1, 0));
@@ -449,11 +539,7 @@ mod tests {
 
     #[test]
     fn cofactor_of_3x3_matrix() {
-        let m = Matrix3::new(
-            3.0, 5.0, 0.0,
-            2.0, -1.0, -7.0,
-            6.0, -1.0, 5.0
-        );
+        let m = Matrix3::new(3.0, 5.0, 0.0, 2.0, -1.0, -7.0, 6.0, -1.0, 5.0);
         assert_eq!(-12.0, m.cofactor(0, 0));
         assert_eq!(-25.0, m.cofactor(1, 0));
     }
@@ -462,19 +548,16 @@ mod tests {
     fn calculating_determinant_of_3x3_matrix() {
         let m = Matrix3::new(1.0, 2.0, 6.0, -5.0, 8.0, -4.0, 2.0, 6.0, 4.0);
 
-        assert_eq!(56.0, m.cofactor(0,0));
+        assert_eq!(56.0, m.cofactor(0, 0));
         assert_eq!(12.0, m.cofactor(0, 1));
-        assert_eq!(-46.0, m.cofactor(0,2));
+        assert_eq!(-46.0, m.cofactor(0, 2));
         assert_eq!(-196.0, m.determinant());
     }
 
     #[test]
     fn calculating_determinant_of_4x4_matrix() {
         let m = Matrix4::new(
-            -2.0, -8.0, 3.0, 5.0,
-            -3.0, 1.0, 7.0, 3.0,
-            1.0, 2.0, -9.0, 6.0,
-            -6.0, 7.0, 7.0, -9.0
+            -2.0, -8.0, 3.0, 5.0, -3.0, 1.0, 7.0, 3.0, 1.0, 2.0, -9.0, 6.0, -6.0, 7.0, 7.0, -9.0,
         );
         assert_eq!(690.0, m.cofactor(0, 0));
         assert_eq!(447.0, m.cofactor(0, 1));
@@ -483,4 +566,53 @@ mod tests {
         assert_eq!(-4071.0, m.determinant());
     }
 
+    #[test]
+    fn testing_invertible_matrix_for_invertibility() {
+        let m = Matrix4::new(
+            6.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 6.0, 4.0, -9.0, 3.0, -7.0, 9.0, 1.0, 7.0, -6.0,
+        );
+        assert_eq!(-2120.0, m.determinant());
+        assert!(m.is_invertible());
+    }
+
+    #[test]
+    fn testing_not_invertible_matrix_for_invertibility() {
+        let m = Matrix4::new(
+            -4.0, 2.0, -2.0, -3.0, 9.0, 6.0, 2.0, 6.0, 0.0, -5.0, 1.0, -5.0, 0.0, 0.0, 0.0, 0.0,
+        );
+        assert_eq!(0.0, m.determinant());
+        assert!(!m.is_invertible());
+    }
+
+    #[test]
+    fn calculating_inverse_of_matrix_4x4() {
+        let m = Matrix4::new(
+            -5.0, 1.0, 7.0, 1.0, 2.0, -5.0, 7.0, -3.0, 6.0, 1.0, -6.0, 7.0, -8.0, 8.0, -7.0, 4.0,
+        );
+
+        let expected = Matrix4::new(
+            0.21805, -0.80827, -0.07895, -0.52256, 0.45113, -1.45677, -0.22368, -0.81391, 0.24060,
+            -0.44361, -0.05263, -0.30075, -0.04511, 0.52068, 0.19737, 0.30639,
+        );
+
+        assert_relative_eq!(expected, m.inverse().round(5))
+    }
+
+    #[test]
+    fn inverse_of_identity_matrix_is_identity() {
+        let m = Matrix4::identity();
+
+        assert_eq!(Matrix4::identity(), m.inverse())
+    }
+
+    #[test]
+    fn inverse_of_transposed_matrix_is_same_as_traspose_of_inversed() {
+        let m = Matrix4::new(
+            -5.0, 1.0, 7.0, 1.0, 2.0, -5.0, 7.0, -3.0, 6.0, 1.0, -6.0, 7.0, -8.0, 8.0, -7.0, 4.0,
+        );
+
+        let expected = m.transpose().inverse();
+
+        assert_eq!(expected, m.inverse().transpose())
+    }
 }
