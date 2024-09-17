@@ -2,7 +2,7 @@ use approx::{AbsDiffEq, RelativeEq};
 use num::{zero, ToPrimitive};
 
 use crate::tuple::Tuple;
-use std::ops::{Div, Index, Mul};
+use std::ops::{Div, Index, IndexMut, Mul};
 
 pub trait Identity {
     fn identity() -> Self;
@@ -39,6 +39,10 @@ pub trait Minor {
     fn cofactor(&self, row: usize, col: usize) -> f64;
 }
 
+pub trait Translation {
+    fn translation(x: f64, y: f64, z: f64) -> Self;
+}
+
 impl<const N: usize> Matrix<N> {
     pub fn row(&self, index: usize) -> [f64; N] {
         self.cells[index]
@@ -68,6 +72,12 @@ impl<const N: usize> Index<usize> for Matrix<N> {
     }
 }
 
+impl<const N: usize> IndexMut<usize> for Matrix<N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.cells[index]
+    }
+}
+
 impl Matrix<2> {
     pub fn new(m00: f64, m01: f64, m10: f64, m11: f64) -> Self {
         Self {
@@ -90,6 +100,16 @@ impl<const N: usize> Identity for Matrix<N> {
             .try_into()
             .unwrap();
         Self { cells: rows }
+    }
+}
+
+impl Translation for Matrix4 {
+    fn translation(x: f64, y: f64, z: f64) -> Self {
+        let mut m = Self::identity();
+        m[0][3] = x;
+        m[1][3] = y;
+        m[2][3] = z;
+        m
     }
 }
 
@@ -355,7 +375,7 @@ impl Inverse for Matrix<4> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tuple::tuple;
+    use crate::tuple::{tuple, point, vector};
 
     #[test]
     fn test_constructing_2x2_matrix() {
@@ -614,5 +634,27 @@ mod tests {
         let expected = m.transpose().inverse();
 
         assert_eq!(expected, m.inverse().transpose())
+    }
+
+    #[test]
+    fn multiplying_point_by_translation_matrix() {
+        let transform = Matrix4::translation(5.0, -3.0, 2.0);
+        let p: Tuple<f64> = point(-3, 4, 5).into();
+        assert_eq!(point(2.0, 1.0, 7.0), transform * p)
+    }
+
+    #[test]
+    fn multiplying_point_by_inverse_of_translation_matrix() {
+        let transform = Matrix4::translation(5.0, -3.0, 2.0);
+        let p: Tuple<f64> = point(-3, 4, 5).into();
+
+        assert_eq!(point(-8.0, 7.0, 3.0), transform.inverse() * p)
+    }
+
+    #[test]
+    fn translation_does_not_affect_vectors() {
+        let transform = Matrix4::translation(5.0, -3.0, 2.0);
+        let v = vector(-3.0, 4.0, 5.0);
+        assert_eq!(v, transform * v)
     }
 }
