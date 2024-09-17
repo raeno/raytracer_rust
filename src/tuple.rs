@@ -1,7 +1,7 @@
 use num::{one, zero, Num};
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use approx::{AbsDiffEq, RelativeEq};
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
@@ -218,6 +218,19 @@ impl<T: RelativeEq> RelativeEq for Tuple<T> where
         T::relative_eq(&self.y, &other.y, epsilon, max_relative) &&
         T::relative_eq(&self.z, &other.z, epsilon, max_relative) &&
         T::relative_eq(&self.w, &other.w, epsilon, max_relative)
+    }
+}
+
+impl<T: UlpsEq> UlpsEq for Tuple<T> where T::Epsilon: Copy, {
+    fn default_max_ulps() -> u32 {
+        T::default_max_ulps()
+    }
+
+    fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
+        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps) &&
+        T::ulps_eq(&self.y, &other.y, epsilon, max_ulps) &&
+        T::ulps_eq(&self.z, &other.z, epsilon, max_ulps) &&
+        T::ulps_eq(&self.w, &other.w, epsilon, max_ulps)
     }
 }
 

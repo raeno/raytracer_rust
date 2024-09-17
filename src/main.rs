@@ -4,6 +4,7 @@ pub mod color;
 pub mod ppm_file;
 pub mod tuple;
 pub mod matrix;
+pub mod transformation;
 
 #[macro_use]
 extern crate approx;
