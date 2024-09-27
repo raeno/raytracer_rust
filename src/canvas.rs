@@ -1,4 +1,4 @@
-use crate::color::{color, Color, Colors};
+use crate::color::{color, Color};
 
 pub struct Canvas {
     pub width: usize,
@@ -45,6 +45,7 @@ pub fn canvas(width: usize, height: usize) -> Canvas {
 mod tests {
     use super::*;
     use crate::color::color_i8;
+    use crate::color::Colors;
 
     #[test]
     fn test_empty_canvas_has_black_pixels() {
