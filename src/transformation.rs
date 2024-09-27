@@ -95,7 +95,7 @@ mod tests {
 
     use super::*;
     use crate::matrix::Inverse;
-    use crate::tuple::{point, vector, Tuple};
+    use crate::tuple::{point, vector, Round, Tuple};
 
     #[test]
     fn multiplying_point_by_translation_matrix() {
@@ -235,5 +235,33 @@ mod tests {
         let p = point(2.0, 3.0, 4.0);
         let expected = point(2.0, 3.0, 7.0);
         assert_eq!(expected, transform * p);
+    }
+
+    #[test]
+    fn individual_transformations_applied_in_sequence() {
+        let p = point(1_f64, 0_f64, 1_f64);
+        let a = rotation_x(FRAC_PI_2);
+        let b = scaling(5.0, 5.0, 5.0);
+        let c = translation(10.0, 5.0, 7.0);
+
+        let p2 = a * p;
+        assert_ulps_eq!(point(1.0, -1.0, 0.0), p2);
+        let p3 = b * p2;
+        assert_ulps_eq!(point(5.0, -5.0, 0.0), p3.round(10));
+
+        let p4 = c * p3;
+        assert_ulps_eq!(point(15.0, 0.0, 7.0), p4);
+    }
+
+    #[test]
+    fn chained_transformations_must_be_applied_in_reverse_order() {
+        let p = point(1_f64, 0_f64, 1_f64);
+        let a = rotation_x(FRAC_PI_2);
+        let b = scaling(5.0, 5.0, 5.0);
+        let c = translation(10.0, 5.0, 7.0);
+        let transform = c * b * a;
+
+        let p4 = transform * p;
+        assert_eq!(point(15.0, 0.0, 7.0), p4.round(10));
     }
 }

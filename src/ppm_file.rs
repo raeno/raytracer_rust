@@ -45,7 +45,7 @@ impl PpmFile {
         let header = PpmHeader::new(canvas.width, canvas.height);
         Self {
             header,
-            body: canvas.pixels.clone()
+            body: canvas.pixels.clone(),
         }
     }
 

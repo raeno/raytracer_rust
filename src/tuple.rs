@@ -1,7 +1,7 @@
-use num::{one, zero, Num};
+use approx::{AbsDiffEq, RelativeEq, UlpsEq};
+use num::{one, zero, Num, ToPrimitive};
 use std::fmt::Display;
 use std::ops::{Add, Div, Mul, Neg, Sub};
-use approx::{AbsDiffEq, RelativeEq, UlpsEq};
 
 #[derive(PartialEq, Eq, Clone, Debug, Copy)]
 pub struct Tuple<T> {
@@ -36,6 +36,11 @@ pub trait CrossProduct<Rhs = Self> {
     fn cross(&self, rhs: &Rhs) -> Self::Output;
 }
 
+pub trait Round {
+    type Output;
+    fn round(&self, digits: u32) -> Self::Output;
+}
+
 impl From<Tuple<i32>> for Tuple<f64> {
     fn from(tuple: Tuple<i32>) -> Self {
         Self::new(
@@ -60,6 +65,21 @@ impl<T: Num + Copy + Into<f64>> Tuple<T> {
     pub fn is_vector(&self) -> bool {
         let fw: f64 = self.w.into();
         fw == zero()
+    }
+}
+
+impl Round for Tuple<f64> {
+    type Output = Tuple<f64>;
+
+    fn round(&self, digits: u32) -> Self {
+        let ten_power = 10_u64.pow(digits).to_f64().unwrap();
+        let round_fn = |val: f64| -> f64 { (val * ten_power).round() / ten_power };
+        Self {
+            x: round_fn(self.x),
+            y: round_fn(self.y),
+            z: round_fn(self.z),
+            w: round_fn(self.w),
+        }
     }
 }
 
@@ -111,7 +131,6 @@ impl Mul<i32> for Tuple<f64> {
         self * rhs as f64
     }
 }
-
 
 impl<T> Div<T> for Tuple<f64>
 where
@@ -189,7 +208,8 @@ impl<T: Num + Copy + Into<f64>> CrossProduct for Tuple<T> {
     }
 }
 
-impl<T: AbsDiffEq> AbsDiffEq for Tuple<T> where
+impl<T: AbsDiffEq> AbsDiffEq for Tuple<T>
+where
     T::Epsilon: Copy,
 {
     type Epsilon = T::Epsilon;
@@ -199,14 +219,15 @@ impl<T: AbsDiffEq> AbsDiffEq for Tuple<T> where
     }
 
     fn abs_diff_eq(&self, other: &Self, epsilon: T::Epsilon) -> bool {
-        T::abs_diff_eq(&self.x, &other.x, epsilon) &&
-        T::abs_diff_eq(&self.y, &other.y, epsilon) &&
-        T::abs_diff_eq(&self.z, &other.z, epsilon) &&
-        T::abs_diff_eq(&self.w, &other.w, epsilon)
+        T::abs_diff_eq(&self.x, &other.x, epsilon)
+            && T::abs_diff_eq(&self.y, &other.y, epsilon)
+            && T::abs_diff_eq(&self.z, &other.z, epsilon)
+            && T::abs_diff_eq(&self.w, &other.w, epsilon)
     }
 }
 
-impl<T: RelativeEq> RelativeEq for Tuple<T> where
+impl<T: RelativeEq> RelativeEq for Tuple<T>
+where
     T::Epsilon: Copy,
 {
     fn default_max_relative() -> T::Epsilon {
@@ -214,23 +235,26 @@ impl<T: RelativeEq> RelativeEq for Tuple<T> where
     }
 
     fn relative_eq(&self, other: &Self, epsilon: T::Epsilon, max_relative: T::Epsilon) -> bool {
-        T::relative_eq(&self.x, &other.x, epsilon, max_relative) &&
-        T::relative_eq(&self.y, &other.y, epsilon, max_relative) &&
-        T::relative_eq(&self.z, &other.z, epsilon, max_relative) &&
-        T::relative_eq(&self.w, &other.w, epsilon, max_relative)
+        T::relative_eq(&self.x, &other.x, epsilon, max_relative)
+            && T::relative_eq(&self.y, &other.y, epsilon, max_relative)
+            && T::relative_eq(&self.z, &other.z, epsilon, max_relative)
+            && T::relative_eq(&self.w, &other.w, epsilon, max_relative)
     }
 }
 
-impl<T: UlpsEq> UlpsEq for Tuple<T> where T::Epsilon: Copy, {
+impl<T: UlpsEq> UlpsEq for Tuple<T>
+where
+    T::Epsilon: Copy,
+{
     fn default_max_ulps() -> u32 {
         T::default_max_ulps()
     }
 
     fn ulps_eq(&self, other: &Self, epsilon: Self::Epsilon, max_ulps: u32) -> bool {
-        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps) &&
-        T::ulps_eq(&self.y, &other.y, epsilon, max_ulps) &&
-        T::ulps_eq(&self.z, &other.z, epsilon, max_ulps) &&
-        T::ulps_eq(&self.w, &other.w, epsilon, max_ulps)
+        T::ulps_eq(&self.x, &other.x, epsilon, max_ulps)
+            && T::ulps_eq(&self.y, &other.y, epsilon, max_ulps)
+            && T::ulps_eq(&self.z, &other.z, epsilon, max_ulps)
+            && T::ulps_eq(&self.w, &other.w, epsilon, max_ulps)
     }
 }
 

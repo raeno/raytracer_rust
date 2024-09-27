@@ -1,10 +1,10 @@
 pub mod cannon;
 pub mod canvas;
 pub mod color;
-pub mod ppm_file;
-pub mod tuple;
 pub mod matrix;
+pub mod ppm_file;
 pub mod transformation;
+pub mod tuple;
 
 #[macro_use]
 extern crate approx;

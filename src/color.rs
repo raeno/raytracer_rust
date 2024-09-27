@@ -1,12 +1,11 @@
-use num::zero;
-use std::ops::{Add, Sub, Mul, Div};
 use approx::{AbsDiffEq, RelativeEq};
+use num::zero;
+use std::ops::{Add, Div, Mul, Sub};
 
 use crate::tuple::Tuple;
 
 #[derive(PartialEq, Clone, Debug, Copy)]
 pub struct Color(Tuple<f64>);
-
 
 impl Color {
     pub fn new(red: f64, green: f64, blue: f64) -> Self {
@@ -49,7 +48,7 @@ impl Mul<Color> for Color {
         Self::new(
             self.red() * rhs.red(),
             self.green() * rhs.green(),
-            self.blue() * rhs.blue()
+            self.blue() * rhs.blue(),
         )
     }
 }
@@ -82,9 +81,8 @@ impl Mul<i32> for Color {
     }
 }
 
-impl AbsDiffEq for Color where
-{
-   type Epsilon = <Tuple<f64> as AbsDiffEq>::Epsilon;
+impl AbsDiffEq for Color {
+    type Epsilon = <Tuple<f64> as AbsDiffEq>::Epsilon;
 
     fn default_epsilon() -> Self::Epsilon {
         f64::default_epsilon()
@@ -95,12 +93,17 @@ impl AbsDiffEq for Color where
     }
 }
 
-impl RelativeEq for Color where {
+impl RelativeEq for Color {
     fn default_max_relative() -> Self::Epsilon {
         f64::default_max_relative()
     }
 
-    fn relative_eq(&self, other: &Self, epsilon: Self::Epsilon, max_relative: Self::Epsilon) -> bool {
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
         Tuple::relative_eq(&self.0, &other.0, epsilon, max_relative)
     }
 }
